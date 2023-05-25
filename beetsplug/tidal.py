@@ -133,8 +133,9 @@ class TidalPlugin(BeetsPlugin):
         """Fetch a track popularity by its Tidal ID."""
         try:
             track_data = self.session.track(id)
-        except tidalapi.TidalError:
-            self._log.debug('Track not found: {}', track_id)
+        except Exception as e:
+            self._log.debug('Track not found: {}. Error: {}',
+                            track_id, format(e))
             return None
         popularity = track_data.popularity
         self._log.debug('Popularity of {} is {}', track_id, popularity)
