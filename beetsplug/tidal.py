@@ -12,7 +12,7 @@ from io import BytesIO
 import confuse
 import requests
 import tidalapi
-from beets import config
+from beets import config, ui
 from beets.autotag.hooks import AlbumInfo, Distance, TrackInfo
 from beets.dbcore import types
 from beets.library import DateType
@@ -67,7 +67,8 @@ class TidalPlugin(BeetsPlugin):
                 if s.load_oauth_session(data["token_type"],
                                         data["access_token"],
                                         data["refresh_token"],
-                                        datetime.fromtimestamp(data["expiry_time"])):
+                                        datetime.fromtimestamp(
+                                            data["expiry_time"])):
                     return s
                 else:
                     return None
@@ -83,6 +84,61 @@ class TidalPlugin(BeetsPlugin):
                 "refresh_token": self.session.refresh_token,
                 "expiry_time": self.session.expiry_time.timestamp()},
                 file, indent=2)
+
+    def commands(self):
+        """Add beet UI commands to interact with Tidal."""
+        tidalsync_cmd = ui.Subcommand(
+            'tidalsync', help=f'Update {self.data_source} views')
+        tidalsync_cmd.parser.add_option(
+            '-f', '--force', dest='force_refetch',
+            action='store_true', default=False,
+            help='re-download data when already present'
+        )
+
+        def func(lib, opts, args):
+            items = lib.items(ui.decargs(args))
+            self.tidalsync(items, ui.should_write(), opts.force_refetch)
+
+        tidalsync_cmd.func = func
+        return [tidalsync_cmd]
+
+    def tidalsync(self, items, write, force):
+        """Obtain track information from Tidal."""
+        self._log.debug('Total {} tracks', len(items))
+
+        for index, item in enumerate(items, start=1):
+            self._log.info('Processing {}/{} tracks - {} ',
+                           index, len(items), item)
+            # If we're not forcing re-downloading for all tracks, check
+            # whether the popularity data is already present
+            if not force:
+                if 'tidal_track_popularity' in item:
+                    self._log.debug('Popularity already present for: {}',
+                                    item)
+                    continue
+            try:
+                tidal_track_id = item.tidal_track_id
+            except AttributeError:
+                self._log.debug('No track_id present for: {}', item)
+                continue
+
+            popularity = self.track_popularity(tidal_track_id)
+            item['tidal_track_id'] = popularity
+            item['spotify_updated'] = time.time()
+            item.store()
+            if write:
+                item.try_write()
+
+    def track_popularity(self, track_id):
+        """Fetch a track popularity by its Tidal ID."""
+        try:
+            track_data = self.session.track(id)
+        except tidalapi.TidalError:
+            self._log.debug('Track not found: {}', track_id)
+            return None
+        popularity = track_data.popularity
+        self._log.debug('Popularity of {} is {}', track_id, popularity)
+        return popularity
 
     def album_distance(self, items, album_info, mapping):
 
