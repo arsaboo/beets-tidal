@@ -123,7 +123,7 @@ class TidalPlugin(BeetsPlugin):
                 continue
 
             popularity = self.track_popularity(tidal_track_id)
-            item['tidal_track_id'] = popularity
+            item['tidal_track_popularity'] = popularity
             item['spotify_updated'] = time.time()
             item.store()
             if write:
