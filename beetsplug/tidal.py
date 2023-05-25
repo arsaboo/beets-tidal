@@ -265,7 +265,11 @@ class TidalPlugin(BeetsPlugin):
         if "tidal.com" in release_id:
             release_id = release_id.split('/')[-1]
         self._log.debug('Searching for album {0}', release_id)
-        album_details = self.session.album(release_id)
+        try:
+            album_details = self.session.album(release_id)
+        except Exception as e:
+            self._log.debug('Not a valid Tidal album: {}'.format(e))
+            return None
         return self.get_album_info(album_details)
 
     def track_for_id(self, track_id):
@@ -274,7 +278,11 @@ class TidalPlugin(BeetsPlugin):
         if "tidal.com" in track_id:
             track_id = track_id.split('/')[-1]
         self._log.debug('Searching for track {0}', track_id)
-        track_details = self.session.track(track_id)
+        try:
+            track_details = self.session.track(track_id)
+        except Exception as e:
+            self._log.debug('Not a valid Tidal track: {}'.format(e))
+            return None            
         return self._get_track(track_details)
 
     def is_valid_image_url(self, url):
