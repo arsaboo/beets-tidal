@@ -128,6 +128,7 @@ class TidalPlugin(BeetsPlugin):
             album_details = self.session.album(id)
             album_info = self.get_album_info(album_details)
             albums.append(album_info)
+        print(len(albums))
         return albums
 
     def get_tracks(self, query):
