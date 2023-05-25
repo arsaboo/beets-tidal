@@ -124,6 +124,7 @@ class TidalPlugin(BeetsPlugin):
             self._log.debug('Invalid Search Error: {}'.format(e))
         if data.get('top_hit'):
             id = data.get('top_hit').id
+            print(id)
             album_details = self.session.album(id)
             album_info = self.get_album_info(album_details)
             albums.append(album_info)
@@ -187,7 +188,10 @@ class TidalPlugin(BeetsPlugin):
         year = item.year
         popularity = item.popularity
         explicit = item.explicit
-        isrc = item.isrc
+        if item.isrc:
+            isrc = item.isrc
+        else:
+            isrc = None
         label = item.copyright
         url = item.image(1280)
         if self.is_valid_image_url(url):
