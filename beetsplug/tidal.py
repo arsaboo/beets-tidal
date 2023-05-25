@@ -67,7 +67,7 @@ class TidalPlugin(BeetsPlugin):
                 if s.load_oauth_session(data["token_type"],
                                         data["access_token"],
                                         data["refresh_token"],
-                                        fromtimestamp(data["expiry_time"])):
+                                        datetime.fromtimestamp(data["expiry_time"])):
                     return s
                 else:
                     return None
