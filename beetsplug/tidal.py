@@ -119,7 +119,6 @@ class TidalPlugin(BeetsPlugin):
         self._log.debug('Searching Tidal for: {}', query)
         try:
             data = self.session.search(query, models=[tidalapi.album.Album])
-            print(data)
         except Exception as e:
             self._log.debug('Invalid Search Error: {}'.format(e))
         if data.get('top_hit'):
@@ -182,7 +181,6 @@ class TidalPlugin(BeetsPlugin):
     def get_album_info(self, item):
         """Returns an AlbumInfo object for a Tidal album.
         """
-        self._log.debug(item.name)
         album = item.name.replace("&quot;", "\"")
         tidal_album_id = item.id
         artist_id = item.artist.id
