@@ -143,7 +143,7 @@ class TidalPlugin(BeetsPlugin):
         # can also negate an otherwise positive result.
         query = re.sub(r'(?i)\b(CD|disc)\s*\d+', '', query)
         tracks = []
-        self._log.debug('Searching Tidal for: {}', query)
+        self._log.debug('Searching Tidal for track: {}', query)
         try:
             data = self.session.search(query, models=[tidalapi.media.Track])
         except Exception as e:
@@ -166,7 +166,7 @@ class TidalPlugin(BeetsPlugin):
         try:
             return self.get_albums(query)
         except Exception as e:
-            self._log.debug('Tidal Search Error: {}'.format(e))
+            self._log.debug('Tidal album search Error: {}'.format(e))
             return []
 
     def item_candidates(self, item, artist, title):
@@ -177,7 +177,7 @@ class TidalPlugin(BeetsPlugin):
         try:
             return self.get_tracks(query)
         except Exception as e:
-            self._log.debug('Tidal Search Error: {}'.format(e))
+            self._log.debug('Tidal track search Error: {}'.format(e))
             return []
 
     def get_album_info(self, item):
