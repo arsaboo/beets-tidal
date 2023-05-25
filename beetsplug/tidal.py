@@ -193,6 +193,7 @@ class TidalPlugin(BeetsPlugin):
             isrc = item.isrc
         else:
             isrc = None
+        self._log.debug('ISRC: {}', isrc)
         label = item.copyright
         url = item.image(1280)
         if self.is_valid_image_url(url):
