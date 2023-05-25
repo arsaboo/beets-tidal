@@ -119,6 +119,7 @@ class TidalPlugin(BeetsPlugin):
         self._log.debug('Searching Tidal for: {}', query)
         try:
             data = self.session.search(query, models=[tidalapi.album.Album])
+            print(data)
         except Exception as e:
             self._log.debug('Invalid Search Error: {}'.format(e))
         if data.get('top_hit'):
@@ -140,15 +141,15 @@ class TidalPlugin(BeetsPlugin):
         # can also negate an otherwise positive result.
         query = re.sub(r'(?i)\b(CD|disc)\s*\d+', '', query)
         tracks = []
-        self._log.debug('Searching JioSaavn for: {}', query)
+        self._log.debug('Searching Tidal for: {}', query)
         try:
-            data = self.tidal.search_song(query)
+            data = self.session.search(query, models=[tidalapi.media.Track])
         except Exception as e:
             self._log.debug('Invalid Search Error: {}'.format(e))
-        for track in data["results"]:
-            id = self.tidal.create_identifier(track["perma_url"], 'song')
-            song_details = self.tidal.get_song_details(id)
-            song_info = self._get_track(song_details["songs"][0])
+        if data.get('top_hit'):
+            id = data.get('top_hit').id
+            song_details = self.session.track(id)
+            song_info = self._get_track(song_details)
             tracks.append(song_info)
         return tracks
 
@@ -163,7 +164,7 @@ class TidalPlugin(BeetsPlugin):
         try:
             return self.get_albums(query)
         except Exception as e:
-            self._log.debug('JioSaavn Search Error: {}'.format(e))
+            self._log.debug('Tidal Search Error: {}'.format(e))
             return []
 
     def item_candidates(self, item, artist, title):
@@ -174,7 +175,7 @@ class TidalPlugin(BeetsPlugin):
         try:
             return self.get_tracks(query)
         except Exception as e:
-            self._log.debug('JioSaavn Search Error: {}'.format(e))
+            self._log.debug('Tidal Search Error: {}'.format(e))
             return []
 
     def get_album_info(self, item):
