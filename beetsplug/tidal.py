@@ -212,7 +212,7 @@ class TidalPlugin(BeetsPlugin):
             day = None
         artists = item.artist.name
         all_tracks = self.session.album(tidal_album_id).tracks()
-        self._log.debug(all_tracks.__dict__)
+        self._log.debug(all_tracks)
         tracks = []
         medium_totals = collections.defaultdict(int)
         for i, song in enumerate(all_tracks, start=1):
