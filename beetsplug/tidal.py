@@ -183,7 +183,7 @@ class TidalPlugin(BeetsPlugin):
     def get_album_info(self, item):
         """Returns an AlbumInfo object for a Tidal album.
         """
-        print(item)
+        self._log.debug(item.name)
         album = item.name.replace("&quot;", "\"")
         tidal_album_id = item.id
         artist_id = item.artist.id
