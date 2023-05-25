@@ -124,11 +124,10 @@ class TidalPlugin(BeetsPlugin):
             self._log.debug('Invalid Search Error: {}'.format(e))
         if data.get('top_hit'):
             id = data.get('top_hit').id
-            print(id)
             album_details = self.session.album(id)
             album_info = self.get_album_info(album_details)
+            self._log.debug(album_info)
             albums.append(album_info)
-        print(len(albums))
         return albums
 
     def get_tracks(self, query):
@@ -216,6 +215,7 @@ class TidalPlugin(BeetsPlugin):
         tracks = []
         medium_totals = collections.defaultdict(int)
         for i, song in enumerate(all_tracks, start=1):
+            self._log.debug(song)
             track = self._get_track(song)
             track.index = i
             medium_totals[track.medium] += 1
