@@ -267,8 +267,7 @@ class TidalPlugin(BeetsPlugin):
         self._log.debug('Searching for album {0}', release_id)
         try:
             album_details = self.session.album(release_id)
-        except Exception as e:
-            self._log.debug('Not a valid Tidal album: {}'.format(e))
+        except Exception:
             return None
         return self.get_album_info(album_details)
 
@@ -280,9 +279,8 @@ class TidalPlugin(BeetsPlugin):
         self._log.debug('Searching for track {0}', track_id)
         try:
             track_details = self.session.track(track_id)
-        except Exception as e:
-            self._log.debug('Not a valid Tidal track: {}'.format(e))
-            return None            
+        except Exception:
+            return None
         return self._get_track(track_details)
 
     def is_valid_image_url(self, url):
