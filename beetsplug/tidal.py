@@ -190,7 +190,7 @@ class TidalPlugin(BeetsPlugin):
         year = item.year
         popularity = item.popularity
         explicit = item.explicit
-        if item.isrc:
+        if hasattr(item, 'isrc'):
             isrc = item.isrc
         else:
             isrc = None
