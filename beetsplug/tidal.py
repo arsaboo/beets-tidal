@@ -215,7 +215,7 @@ class TidalPlugin(BeetsPlugin):
         tracks = []
         medium_totals = collections.defaultdict(int)
         for i, song in enumerate(all_tracks, start=1):
-            self._log.debug(song)
+            self._log.debug(song.__dict__)
             track = self._get_track(song)
             track.index = i
             medium_totals[track.medium] += 1
