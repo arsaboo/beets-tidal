@@ -245,7 +245,7 @@ class TidalPlugin(BeetsPlugin):
         """Convert a Tidal song object to a TrackInfo object.
         """
         if track_data.duration:
-            length = int(track_data.duration.strip())
+            length = track_data.duration
         else:
             length = None
         # Get track information for Tidal tracks
