@@ -46,7 +46,7 @@ class TidalPlugin(BeetsPlugin):
             'tidal_sleep_interval': [5, 30],
             'tidal_session_file': 'tidal.json'})
 
-        sessionfile = config["tidal_session_file"].get(
+        sessionfile = config["tidal"]["tidal_session_file"].get(
             confuse.Filename(in_app_dir=True))
 
         self.session = self.load_session(sessionfile)
