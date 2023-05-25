@@ -169,7 +169,7 @@ class TidalPlugin(BeetsPlugin):
             return []
 
     def item_candidates(self, item, artist, title):
-        """Returns a list of TrackInfo objects for JioSaavn search results
+        """Returns a list of TrackInfo objects for Tidal search results
         matching title and artist.
         """
         query = f'{title} {artist}'
@@ -212,11 +212,9 @@ class TidalPlugin(BeetsPlugin):
             day = None
         artists = item.artist.name
         all_tracks = self.session.album(tidal_album_id).tracks()
-        self._log.debug(all_tracks)
         tracks = []
         medium_totals = collections.defaultdict(int)
         for i, song in enumerate(all_tracks, start=1):
-            self._log.debug(song.__dict__)
             track = self._get_track(song)
             track.index = i
             medium_totals[track.medium] += 1
@@ -246,11 +244,11 @@ class TidalPlugin(BeetsPlugin):
     def _get_track(self, track_data):
         """Convert a Tidal song object to a TrackInfo object.
         """
-        if track_data['duration']:
-            length = int(track_data['duration'].strip())
+        if track_data.duration:
+            length = int(track_data.duration.strip())
         else:
             length = None
-        # Get album information for JioSaavn tracks
+        # Get track information for Tidal tracks
         return TrackInfo(
             title=track_data.name.replace("&quot;", "\""),
             track_id=track_data.id,
