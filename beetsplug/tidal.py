@@ -262,6 +262,8 @@ class TidalPlugin(BeetsPlugin):
     def album_for_id(self, release_id):
         """Fetches an album by its Tidal ID and returns an AlbumInfo object
         """
+        if "tidal.com" in release_id:
+            release_id = release_id.split('/')[-1]
         self._log.debug('Searching for album {0}', release_id)
         album_details = self.session.album(release_id)
         return self.get_album_info(album_details)
@@ -269,6 +271,8 @@ class TidalPlugin(BeetsPlugin):
     def track_for_id(self, track_id):
         """Fetches a track by its Tidal ID and returns a TrackInfo object
         """
+        if "tidal.com" in track_id:
+            track_id = track_id.split('/')[-1]
         self._log.debug('Searching for track {0}', track_id)
         track_details = self.session.track(track_id)
         return self._get_track(track_details)
