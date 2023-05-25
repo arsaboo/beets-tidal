@@ -125,7 +125,6 @@ class TidalPlugin(BeetsPlugin):
             id = data.get('top_hit').id
             album_details = self.session.album(id)
             album_info = self.get_album_info(album_details)
-            self._log.debug(album_info)
             albums.append(album_info)
         return albums
 
@@ -191,7 +190,6 @@ class TidalPlugin(BeetsPlugin):
             isrc = item.isrc
         else:
             isrc = None
-        self._log.debug('ISRC: {}', isrc)
         label = item.copyright
         url = item.image(1280)
         if self.is_valid_image_url(url):
