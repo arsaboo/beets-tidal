@@ -27,7 +27,6 @@ def extend_reimport_fresh_fields_item():
         'tidal_track_popularity', 'tidal_alb_popularity',
         'tidal_updated'])
 
-
 class TidalPlugin(BeetsPlugin):
     data_source = 'Tidal'
 
