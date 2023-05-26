@@ -12,7 +12,7 @@ from io import BytesIO
 import confuse
 import requests
 import tidalapi
-from beets import config
+from beets import config, importer, ui
 from beets.autotag.hooks import AlbumInfo, Distance, TrackInfo
 from beets.dbcore import types
 from beets.library import DateType
@@ -20,12 +20,18 @@ from beets.plugins import BeetsPlugin, get_distance
 from PIL import Image
 
 
+def extend_reimport_fresh_fields_item():
+    """Extend the REIMPORT_FRESH_FIELDS_ITEM list from a plugin."""
+    importer.REIMPORT_FRESH_FIELDS_ITEM.extend([
+        'tidal_album_id', 'tidal_track_id', 'tidal_artist_id',
+        'tidal_track_popularity', 'tidal_alb_popularity',
+        'tidal_updated'])
+
 class TidalPlugin(BeetsPlugin):
     data_source = 'Tidal'
 
     item_types = {
         'tidal_duration': types.INTEGER,
-        'tidal_id': types.INTEGER,
         'tidal_album_id': types.INTEGER,
         'tidal_track_id': types.INTEGER,
         'tidal_artist_id': types.INTEGER,
@@ -39,6 +45,7 @@ class TidalPlugin(BeetsPlugin):
         self.config.add({
             'source_weight': 0.5,
         })
+        extend_reimport_fresh_fields_item()
 
         # Adding defaults.
         config['tidal'].add({
@@ -67,7 +74,8 @@ class TidalPlugin(BeetsPlugin):
                 if s.load_oauth_session(data["token_type"],
                                         data["access_token"],
                                         data["refresh_token"],
-                                        datetime.fromtimestamp(data["expiry_time"])):
+                                        datetime.fromtimestamp(
+                                            data["expiry_time"])):
                     return s
                 else:
                     return None
@@ -83,6 +91,62 @@ class TidalPlugin(BeetsPlugin):
                 "refresh_token": self.session.refresh_token,
                 "expiry_time": self.session.expiry_time.timestamp()},
                 file, indent=2)
+
+    def commands(self):
+        """Add beet UI commands to interact with Tidal."""
+        tidalsync_cmd = ui.Subcommand(
+            'tidalsync', help=f'Update {self.data_source} views')
+        tidalsync_cmd.parser.add_option(
+            '-f', '--force', dest='force_refetch',
+            action='store_true', default=False,
+            help='re-download data when already present'
+        )
+
+        def func(lib, opts, args):
+            items = lib.items(ui.decargs(args))
+            self.tidalsync(items, ui.should_write(), opts.force_refetch)
+
+        tidalsync_cmd.func = func
+        return [tidalsync_cmd]
+
+    def tidalsync(self, items, write, force):
+        """Obtain track information from Tidal."""
+        self._log.debug('Total {} tracks', len(items))
+
+        for index, item in enumerate(items, start=1):
+            self._log.info('Processing {}/{} tracks - {} ',
+                           index, len(items), item)
+            # If we're not forcing re-downloading for all tracks, check
+            # whether the popularity data is already present
+            if not force:
+                if 'tidal_track_popularity' in item:
+                    self._log.debug('Popularity already present for: {}',
+                                    item)
+                    continue
+            try:
+                tidal_track_id = item.tidal_track_id
+            except AttributeError:
+                self._log.debug('No track_id present for: {}', item)
+                continue
+
+            popularity = self.track_popularity(tidal_track_id)
+            item['tidal_track_popularity'] = popularity
+            item['spotify_updated'] = time.time()
+            item.store()
+            if write:
+                item.try_write()
+
+    def track_popularity(self, track_id):
+        """Fetch a track popularity by its Tidal ID."""
+        try:
+            track_data = self.session.track(id)
+        except Exception as e:
+            self._log.debug('Track not found: {}. Error: {}',
+                            track_id, format(e))
+            return None
+        popularity = track_data.popularity
+        self._log.debug('Popularity of {} is {}', track_id, popularity)
+        return popularity
 
     def album_distance(self, items, album_info, mapping):
 
@@ -244,6 +308,7 @@ class TidalPlugin(BeetsPlugin):
             length = track_data.duration
         else:
             length = None
+        print(track_data.id)
         # Get track information for Tidal tracks
         return TrackInfo(
             title=track_data.name.replace("&quot;", "\""),
