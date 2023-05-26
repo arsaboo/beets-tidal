@@ -12,7 +12,7 @@ from io import BytesIO
 import confuse
 import requests
 import tidalapi
-from beets import config, ui
+from beets import config, importer, ui
 from beets.autotag.hooks import AlbumInfo, Distance, TrackInfo
 from beets.dbcore import types
 from beets.library import DateType
@@ -20,12 +20,19 @@ from beets.plugins import BeetsPlugin, get_distance
 from PIL import Image
 
 
+def extend_reimport_fresh_fields_item():
+    """Extend the REIMPORT_FRESH_FIELDS_ITEM list from a plugin."""
+    importer.REIMPORT_FRESH_FIELDS_ITEM.extend([
+        'tidal_album_id', 'tidal_track_id', 'tidal_artist_id',
+        'tidal_track_popularity', 'tidal_alb_popularity',
+        'tidal_updated'])
+
+
 class TidalPlugin(BeetsPlugin):
     data_source = 'Tidal'
 
     item_types = {
         'tidal_duration': types.INTEGER,
-        'tidal_id': types.INTEGER,
         'tidal_album_id': types.INTEGER,
         'tidal_track_id': types.INTEGER,
         'tidal_artist_id': types.INTEGER,
@@ -39,6 +46,7 @@ class TidalPlugin(BeetsPlugin):
         self.config.add({
             'source_weight': 0.5,
         })
+        extend_reimport_fresh_fields_item()
 
         # Adding defaults.
         config['tidal'].add({
