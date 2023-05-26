@@ -196,7 +196,7 @@ class TidalPlugin(BeetsPlugin):
         return albums
 
     def get_tracks(self, query):
-        """Returns a list of TrackInfo objects for a JioSaavn search query.
+        """Returns a list of TrackInfo objects for a Tidal search query.
         """
         # Strip non-word characters from query. Things like "!" and "-" can
         # cause a query to return no results, even if they match the artist or
@@ -220,7 +220,7 @@ class TidalPlugin(BeetsPlugin):
         return tracks
 
     def candidates(self, items, artist, release, va_likely, extra_tags=None):
-        """Returns a list of AlbumInfo objects for JioSaavn search results
+        """Returns a list of AlbumInfo objects for Tidal search results
         matching release and artist (if not various).
         """
         if va_likely:
