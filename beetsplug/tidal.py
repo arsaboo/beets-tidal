@@ -311,7 +311,6 @@ class TidalPlugin(BeetsPlugin):
             length = track_data.duration
         else:
             length = None
-        print(track_data.id)
         # Get track information for Tidal tracks
         return TrackInfo(
             title=track_data.name.replace("&quot;", "\""),
