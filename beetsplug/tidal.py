@@ -21,11 +21,14 @@ from PIL import Image
 
 
 def extend_reimport_fresh_fields_item():
-    """Extend the REIMPORT_FRESH_FIELDS_ITEM list from a plugin."""
+    """Extend the REIMPORT_FRESH_FIELDS_ITEM list so that these fields
+    are updated during reimport."""
+
     importer.REIMPORT_FRESH_FIELDS_ITEM.extend([
         'tidal_album_id', 'tidal_track_id', 'tidal_artist_id',
         'tidal_track_popularity', 'tidal_alb_popularity',
         'tidal_updated'])
+
 
 class TidalPlugin(BeetsPlugin):
     data_source = 'Tidal'
