@@ -358,3 +358,26 @@ class TidalPlugin(BeetsPlugin):
         except Exception as e:
             self._log.debug('Invalid Image URL: {}'.format(e))
             return False
+
+    def import_tidal_playlist(self, url):
+        """This function returns a list of tracks in a Tidal playlist."""
+        if "tidal.com/playlist/" not in url:
+            self._log.error("Invalid Tidal playlist URL")
+            return None
+        else:
+            playlist_id = url.split('/')[-1]
+            playlist = tidalapi.playlist.Playlist(self.session, playlist_id)
+            tracks = playlist.tracks()
+            song_list = []
+            for track in tracks:
+                # Find and store the song title
+                title = track.name.replace("&quot;", "\"")
+                album = track.album.name.replace("&quot;", "\"")
+                artist = track.artist.name
+                # Create a dictionary with the song information
+                song_dict = {"title": title.strip(),
+                             "artist": artist.strip(),
+                             "album": album.strip()}
+                # Append the dictionary to the list of songs
+                song_list.append(song_dict)
+            return song_list
