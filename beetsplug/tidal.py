@@ -13,9 +13,10 @@ import confuse
 import requests
 import tidalapi
 from beets import config, importer, ui
-from beets.autotag.hooks import AlbumInfo, Distance, TrackInfo
+from beets.autotag.hooks import AlbumInfo, TrackInfo
+from beets.autotag.distance import Distance
 from beets.dbcore import types
-from beets.library import DateType
+from beets.dbcore.types import DateType
 from beets.plugins import BeetsPlugin, get_distance
 from PIL import Image
 
@@ -142,7 +143,7 @@ class TidalPlugin(BeetsPlugin):
     def track_popularity(self, track_id):
         """Fetch a track popularity by its Tidal ID."""
         try:
-            track_data = self.session.track(id)
+            track_data = self.session.track(track_id)
         except Exception as e:
             self._log.debug('Track not found: {}. Error: {}',
                             track_id, format(e))
