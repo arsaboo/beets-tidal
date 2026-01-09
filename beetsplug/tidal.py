@@ -81,13 +81,18 @@ class TidalPlugin(BeetsPlugin):
         try:
             with open(sfile, "r") as file:
                 data = json.load(file)
-                if s.load_oauth_session(data["token_type"],
-                                        data["access_token"],
-                                        data["refresh_token"],
-                                        datetime.fromtimestamp(
-                                            data["expiry_time"])):
-                    return s
-                else:
+                try:
+                    if s.load_oauth_session(data["token_type"],
+                                            data["access_token"],
+                                            data["refresh_token"],
+                                            datetime.fromtimestamp(
+                                                data["expiry_time"])):
+                        return s
+                    else:
+                        return None
+                except Exception as e:
+                    self._log.debug(f"Failed to load saved session: {e}. "
+                                    "Will require fresh authentication.")
                     return None
         except FileNotFoundError:
             return None
