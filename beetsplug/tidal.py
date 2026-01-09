@@ -13,10 +13,11 @@ import confuse
 import requests
 import tidalapi
 from beets import config, ui
-from beets.autotag.hooks import AlbumInfo, TrackInfo
 from beets.autotag.distance import Distance
+from beets.autotag.hooks import AlbumInfo, TrackInfo
 from beets.dbcore import types
 from beets.dbcore.types import DateType
+from beets.metadata_plugins import MetadataSourcePlugin
 from beets.plugins import BeetsPlugin
 from PIL import Image
 
@@ -37,7 +38,7 @@ def extend_reimport_fresh_fields_item():
             'tidal_updated'])
 
 
-class TidalPlugin(BeetsPlugin):
+class TidalPlugin(MetadataSourcePlugin):
     data_source = 'Tidal'
 
     item_types = {
@@ -337,14 +338,14 @@ class TidalPlugin(BeetsPlugin):
             tidal_updated=time.time(),
         )
 
-    def album_for_id(self, release_id):
+    def album_for_id(self, album_id):
         """Fetches an album by its Tidal ID and returns an AlbumInfo object
         """
-        if "tidal.com" in release_id:
-            release_id = release_id.split('/')[-1]
-        self._log.debug('Searching for album {0}', release_id)
+        if "tidal.com" in album_id:
+            album_id = album_id.split('/')[-1]
+        self._log.debug('Searching for album {0}', album_id)
         try:
-            album_details = self.session.album(release_id)
+            album_details = self.session.album(album_id)
         except Exception:
             return None
         return self.get_album_info(album_details)
