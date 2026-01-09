@@ -17,7 +17,7 @@ from beets.autotag.hooks import AlbumInfo, TrackInfo
 from beets.autotag.distance import Distance
 from beets.dbcore import types
 from beets.dbcore.types import DateType
-from beets.plugins import BeetsPlugin, get_distance
+from beets.plugins import BeetsPlugin
 from PIL import Image
 
 
@@ -166,11 +166,10 @@ class TidalPlugin(BeetsPlugin):
         """Returns the Tidal source weight and the maximum source weight
         for individual tracks.
         """
-        return get_distance(
-            data_source=self.data_source,
-            info=track_info,
-            config=self.config
-        )
+        dist = Distance()
+        if track_info.data_source == 'Tidal':
+            dist.add('source', self.config['source_weight'].as_number())
+        return dist
 
     def get_albums(self, query):
         """Returns a list of AlbumInfo objects for a Tidal search query.
