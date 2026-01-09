@@ -54,9 +54,18 @@ class TidalPlugin(MetadataSourcePlugin):
     def __init__(self):
         super().__init__()
         self.config.add({
-            'source_weight': 0.5,
+            'data_source_mismatch_penalty': 0.5,
+            'source_weight': None,  # Deprecated, kept for backward compatibility
         })
         extend_reimport_fresh_fields_item()
+
+        # Handle deprecated source_weight option
+        if self.config['source_weight'].get() is not None:
+            self._log.warning(
+                "tidal: 'source_weight' configuration option is deprecated "
+                "and will be removed in v3.0.0. Use 'data_source_mismatch_penalty' instead"
+            )
+            self.config['data_source_mismatch_penalty'] = self.config['source_weight'].get()
 
         # Adding defaults.
         config['tidal'].add({
@@ -170,7 +179,7 @@ class TidalPlugin(MetadataSourcePlugin):
         """
         dist = Distance()
         if album_info.data_source == 'Tidal':
-            dist.add('source', self.config['source_weight'].as_number())
+            dist.add('source', self.config['data_source_mismatch_penalty'].as_number())
         return dist
 
     def track_distance(self, item, track_info):
@@ -180,7 +189,7 @@ class TidalPlugin(MetadataSourcePlugin):
         """
         dist = Distance()
         if track_info.data_source == 'Tidal':
-            dist.add('source', self.config['source_weight'].as_number())
+            dist.add('source', self.config['data_source_mismatch_penalty'].as_number())
         return dist
 
     def get_albums(self, query):

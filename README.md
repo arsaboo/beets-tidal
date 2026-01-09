@@ -35,7 +35,7 @@ plugins:
   - tidal
 
 tidal:
-  source_weight: 0.5
+  data_source_mismatch_penalty: 0.5
   tidal_attempts: 5
   tidal_sleep_interval: [5, 30]
   tidal_session_file: tidal.json
@@ -43,7 +43,8 @@ tidal:
 
 #### Configuration Options
 
-- **source_weight** (default: 0.5): Weight given to Tidal as a metadata source during import. Higher values increase Tidal's priority in autotagging.
+- **data_source_mismatch_penalty** (default: 0.5): Penalty applied when the metadata source doesn't match Tidal during autotagging. Lower values increase Tidal's priority.
+- **source_weight** (deprecated): Legacy option for backward compatibility. Use `data_source_mismatch_penalty` instead. Will be removed in v3.0.0.
 - **tidal_attempts** (default: 5): Number of attempts to make when fetching data from Tidal API.
 - **tidal_sleep_interval** (default: [5, 30]): Sleep interval (in seconds) between API calls. Provide as a range `[min, max]`.
 - **tidal_session_file** (default: tidal.json): Location where Tidal OAuth session is saved.
