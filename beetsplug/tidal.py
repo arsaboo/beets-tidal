@@ -12,25 +12,33 @@ from io import BytesIO
 import confuse
 import requests
 import tidalapi
-from beets import config, importer, ui
-from beets.autotag.hooks import AlbumInfo, Distance, TrackInfo
+from beets import config, ui
+from beets.autotag.distance import Distance
+from beets.autotag.hooks import AlbumInfo, TrackInfo
 from beets.dbcore import types
-from beets.library import DateType
-from beets.plugins import BeetsPlugin, get_distance
+from beets.dbcore.types import DateType
+from beets.metadata_plugins import MetadataSourcePlugin
+from beets.plugins import BeetsPlugin
 from PIL import Image
+
+try:
+    from beets.importer.tasks import REIMPORT_FRESH_FIELDS_ITEM
+except ImportError:
+    REIMPORT_FRESH_FIELDS_ITEM = None
 
 
 def extend_reimport_fresh_fields_item():
     """Extend the REIMPORT_FRESH_FIELDS_ITEM list so that these fields
     are updated during reimport."""
 
-    importer.REIMPORT_FRESH_FIELDS_ITEM.extend([
-        'tidal_album_id', 'tidal_track_id', 'tidal_artist_id',
-        'tidal_track_popularity', 'tidal_alb_popularity',
-        'tidal_updated'])
+    if REIMPORT_FRESH_FIELDS_ITEM is not None:
+        REIMPORT_FRESH_FIELDS_ITEM.extend([
+            'tidal_album_id', 'tidal_track_id', 'tidal_artist_id',
+            'tidal_track_popularity', 'tidal_alb_popularity',
+            'tidal_updated'])
 
 
-class TidalPlugin(BeetsPlugin):
+class TidalPlugin(MetadataSourcePlugin):
     data_source = 'Tidal'
 
     item_types = {
@@ -46,9 +54,18 @@ class TidalPlugin(BeetsPlugin):
     def __init__(self):
         super().__init__()
         self.config.add({
-            'source_weight': 0.5,
+            'data_source_mismatch_penalty': 0.5,
+            'source_weight': None,  # Deprecated, kept for backward compatibility
         })
         extend_reimport_fresh_fields_item()
+
+        # Handle deprecated source_weight option
+        if self.config['source_weight'].get() is not None:
+            self._log.warning(
+                "tidal: 'source_weight' configuration option is deprecated "
+                "and will be removed in v3.0.0. Use 'data_source_mismatch_penalty' instead"
+            )
+            self.config['data_source_mismatch_penalty'] = self.config['source_weight'].get()
 
         # Adding defaults.
         config['tidal'].add({
@@ -74,13 +91,18 @@ class TidalPlugin(BeetsPlugin):
         try:
             with open(sfile, "r") as file:
                 data = json.load(file)
-                if s.load_oauth_session(data["token_type"],
-                                        data["access_token"],
-                                        data["refresh_token"],
-                                        datetime.fromtimestamp(
-                                            data["expiry_time"])):
-                    return s
-                else:
+                try:
+                    if s.load_oauth_session(data["token_type"],
+                                            data["access_token"],
+                                            data["refresh_token"],
+                                            datetime.fromtimestamp(
+                                                data["expiry_time"])):
+                        return s
+                    else:
+                        return None
+                except Exception as e:
+                    self._log.debug(f"Failed to load saved session: {e}. "
+                                    "Will require fresh authentication.")
                     return None
         except FileNotFoundError:
             return None
@@ -134,7 +156,7 @@ class TidalPlugin(BeetsPlugin):
 
             popularity = self.track_popularity(tidal_track_id)
             item['tidal_track_popularity'] = popularity
-            item['spotify_updated'] = time.time()
+            item['tidal_updated'] = time.time()
             item.store()
             if write:
                 item.try_write()
@@ -142,7 +164,7 @@ class TidalPlugin(BeetsPlugin):
     def track_popularity(self, track_id):
         """Fetch a track popularity by its Tidal ID."""
         try:
-            track_data = self.session.track(id)
+            track_data = self.session.track(track_id)
         except Exception as e:
             self._log.debug('Track not found: {}. Error: {}',
                             track_id, format(e))
@@ -157,7 +179,7 @@ class TidalPlugin(BeetsPlugin):
         """
         dist = Distance()
         if album_info.data_source == 'Tidal':
-            dist.add('source', self.config['source_weight'].as_number())
+            dist.add('source', self.config['data_source_mismatch_penalty'].as_number())
         return dist
 
     def track_distance(self, item, track_info):
@@ -165,11 +187,10 @@ class TidalPlugin(BeetsPlugin):
         """Returns the Tidal source weight and the maximum source weight
         for individual tracks.
         """
-        return get_distance(
-            data_source=self.data_source,
-            info=track_info,
-            config=self.config
-        )
+        dist = Distance()
+        if track_info.data_source == 'Tidal':
+            dist.add('source', self.config['data_source_mismatch_penalty'].as_number())
+        return dist
 
     def get_albums(self, query):
         """Returns a list of AlbumInfo objects for a Tidal search query.
@@ -219,14 +240,14 @@ class TidalPlugin(BeetsPlugin):
             tracks.append(song_info)
         return tracks
 
-    def candidates(self, items, artist, release, va_likely, extra_tags=None):
+    def candidates(self, items, artist, album, va_likely, extra_tags=None):
         """Returns a list of AlbumInfo objects for Tidal search results
-        matching release and artist (if not various).
+        matching album and artist (if not various).
         """
         if va_likely:
-            query = release
+            query = album
         else:
-            query = f'{release} {artist}'
+            query = f'{album} {artist}'
         try:
             return self.get_albums(query)
         except Exception as e:
@@ -326,14 +347,14 @@ class TidalPlugin(BeetsPlugin):
             tidal_updated=time.time(),
         )
 
-    def album_for_id(self, release_id):
+    def album_for_id(self, album_id):
         """Fetches an album by its Tidal ID and returns an AlbumInfo object
         """
-        if "tidal.com" in release_id:
-            release_id = release_id.split('/')[-1]
-        self._log.debug('Searching for album {0}', release_id)
+        if "tidal.com" in album_id:
+            album_id = album_id.split('/')[-1]
+        self._log.debug('Searching for album {0}', album_id)
         try:
-            album_details = self.session.album(release_id)
+            album_details = self.session.album(album_id)
         except Exception:
             return None
         return self.get_album_info(album_details)
