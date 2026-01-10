@@ -156,7 +156,7 @@ class TidalPlugin(MetadataSourcePlugin):
 
             popularity = self.track_popularity(tidal_track_id)
             item['tidal_track_popularity'] = popularity
-            item['spotify_updated'] = time.time()
+            item['tidal_updated'] = time.time()
             item.store()
             if write:
                 item.try_write()
@@ -240,14 +240,14 @@ class TidalPlugin(MetadataSourcePlugin):
             tracks.append(song_info)
         return tracks
 
-    def candidates(self, items, artist, release, va_likely, extra_tags=None):
+    def candidates(self, items, artist, album, va_likely, extra_tags=None):
         """Returns a list of AlbumInfo objects for Tidal search results
-        matching release and artist (if not various).
+        matching album and artist (if not various).
         """
         if va_likely:
-            query = release
+            query = album
         else:
-            query = f'{release} {artist}'
+            query = f'{album} {artist}'
         try:
             return self.get_albums(query)
         except Exception as e:
