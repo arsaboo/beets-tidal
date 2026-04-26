@@ -270,7 +270,7 @@ class TidalPlugin(MetadataSourcePlugin):
         """
         album = item.name.replace("&quot;", "\"")
         tidal_album_id = item.id
-        artist_id = item.artist.id
+        artist_id = str(item.artist.id)
         year = item.year
         popularity = item.popularity
         explicit = item.explicit
@@ -306,7 +306,7 @@ class TidalPlugin(MetadataSourcePlugin):
         for track in tracks:
             track.medium_total = medium_totals[track.medium]
         return AlbumInfo(album=album,
-                         album_id=tidal_album_id,
+                         album_id=str(tidal_album_id),
                          tidal_album_id=tidal_album_id,
                          artist=artists,
                          artist_id=artist_id,
@@ -335,10 +335,11 @@ class TidalPlugin(MetadataSourcePlugin):
         # Get track information for Tidal tracks
         return TrackInfo(
             title=track_data.name.replace("&quot;", "\""),
-            track_id=track_data.id,
+            track_id=str(track_data.id),
             tidal_track_id=track_data.id,
             artist=track_data.artist.name,
             album=track_data.album.name.replace("&quot;", "\""),
+            artist_id=str(track_data.artist.id),
             tidal_artist_id=track_data.artist.id,
             length=length,
             data_source=self.data_source,
