@@ -13,12 +13,10 @@ import confuse
 import requests
 import tidalapi
 from beets import config, ui
-from beets.autotag.distance import Distance
 from beets.autotag.hooks import AlbumInfo, TrackInfo
 from beets.dbcore import types
 from beets.dbcore.types import DateType
 from beets.metadata_plugins import MetadataSourcePlugin
-from beets.plugins import BeetsPlugin
 from PIL import Image
 
 try:
@@ -55,17 +53,8 @@ class TidalPlugin(MetadataSourcePlugin):
         super().__init__()
         self.config.add({
             'data_source_mismatch_penalty': 0.5,
-            'source_weight': None,  # Deprecated, kept for backward compatibility
         })
         extend_reimport_fresh_fields_item()
-
-        # Handle deprecated source_weight option
-        if self.config['source_weight'].get() is not None:
-            self._log.warning(
-                "tidal: 'source_weight' configuration option is deprecated "
-                "and will be removed in v3.0.0. Use 'data_source_mismatch_penalty' instead"
-            )
-            self.config['data_source_mismatch_penalty'] = self.config['source_weight'].get()
 
         # Adding defaults.
         config['tidal'].add({
@@ -173,25 +162,6 @@ class TidalPlugin(MetadataSourcePlugin):
         self._log.debug('Popularity of {} is {}', track_id, popularity)
         return popularity
 
-    def album_distance(self, items, album_info, mapping):
-
-        """Returns the album distance.
-        """
-        dist = Distance()
-        if album_info.data_source == 'Tidal':
-            dist.add('source', self.config['data_source_mismatch_penalty'].as_number())
-        return dist
-
-    def track_distance(self, item, track_info):
-
-        """Returns the Tidal source weight and the maximum source weight
-        for individual tracks.
-        """
-        dist = Distance()
-        if track_info.data_source == 'Tidal':
-            dist.add('source', self.config['data_source_mismatch_penalty'].as_number())
-        return dist
-
     def get_albums(self, query):
         """Returns a list of AlbumInfo objects for a Tidal search query.
         """
@@ -209,11 +179,20 @@ class TidalPlugin(MetadataSourcePlugin):
             data = self.session.search(query, models=[tidalapi.album.Album])
         except Exception as e:
             self._log.debug('Invalid Search Error: {}'.format(e))
-        if data.get('top_hit'):
-            id = data.get('top_hit').id
-            album_details = self.session.album(id)
-            album_info = self.get_album_info(album_details)
-            albums.append(album_info)
+            return albums
+        for result in data.get('albums', []):
+            try:
+                album_info = self.get_album_info(self.session.album(result.id))
+                albums.append(album_info)
+            except Exception as e:
+                self._log.debug('Error fetching album {}: {}', result.id, e)
+        if not albums and data.get('top_hit'):
+            try:
+                album_info = self.get_album_info(
+                    self.session.album(data['top_hit'].id))
+                albums.append(album_info)
+            except Exception as e:
+                self._log.debug('Error fetching top_hit album: {}', e)
         return albums
 
     def get_tracks(self, query):
@@ -233,21 +212,39 @@ class TidalPlugin(MetadataSourcePlugin):
             data = self.session.search(query, models=[tidalapi.media.Track])
         except Exception as e:
             self._log.debug('Invalid Search Error: {}'.format(e))
-        if data.get('top_hit'):
-            id = data.get('top_hit').id
-            song_details = self.session.track(id)
-            song_info = self._get_track(song_details)
-            tracks.append(song_info)
+            return tracks
+        for result in data.get('tracks', []):
+            try:
+                tracks.append(self._get_track(self.session.track(result.id)))
+            except Exception as e:
+                self._log.debug('Error fetching track {}: {}', result.id, e)
+        if not tracks and data.get('top_hit'):
+            try:
+                tracks.append(
+                    self._get_track(self.session.track(data['top_hit'].id)))
+            except Exception as e:
+                self._log.debug('Error fetching top_hit track: {}', e)
         return tracks
 
-    def candidates(self, items, artist, album, va_likely, extra_tags=None):
+    def candidates(self, items, artist, album, va_likely):
         """Returns a list of AlbumInfo objects for Tidal search results
         matching album and artist (if not various).
         """
-        if va_likely:
-            query = album
-        else:
-            query = f'{album} {artist}'
+        # Barcode lookup gives a near-certain match when available.
+        barcodes = list(filter(None, {i.get('barcode') for i in items}))
+        for barcode in barcodes:
+            try:
+                data = self.session.search(
+                    barcode, models=[tidalapi.album.Album])
+                if data.get('top_hit'):
+                    album_info = self.get_album_info(
+                        self.session.album(data['top_hit'].id))
+                    self._log.debug('Barcode match for {}', barcode)
+                    return [album_info]
+            except Exception as e:
+                self._log.debug('Barcode search error for {}: {}', barcode, e)
+
+        query = album if va_likely else f'{album} {artist}'
         try:
             return self.get_albums(query)
         except Exception as e:
@@ -258,6 +255,18 @@ class TidalPlugin(MetadataSourcePlugin):
         """Returns a list of TrackInfo objects for Tidal search results
         matching title and artist.
         """
+        # ISRC lookup gives a near-certain match when available.
+        if isrc := item.get('isrc'):
+            try:
+                data = self.session.search(isrc, models=[tidalapi.media.Track])
+                if data.get('top_hit'):
+                    track_info = self._get_track(
+                        self.session.track(data['top_hit'].id))
+                    self._log.debug('ISRC match for {}', isrc)
+                    return [track_info]
+            except Exception as e:
+                self._log.debug('ISRC search error for {}: {}', isrc, e)
+
         query = f'{title} {artist}'
         try:
             return self.get_tracks(query)
