@@ -3,7 +3,7 @@ from setuptools import setup
 setup(
     name='beets-tidal',
     version='0.1',
-    description='beets plugin to use Tidal for metadata',
+    description='[DEPRECATED] Use the official beets Tidal plugin instead',
     long_description=open('README.md').read(),
     author='Alok Saboo',
     author_email='',

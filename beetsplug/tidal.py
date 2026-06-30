@@ -1,5 +1,9 @@
 """
-Adds Tidal support to the autotagger.
+[DEPRECATED] Adds Tidal support to the autotagger.
+
+This plugin is deprecated. Use the official beets Tidal plugin instead:
+    pip install "beets[tidal]"
+See: https://beets.readthedocs.io/en/stable/plugins/tidal.html
 """
 
 import collections
